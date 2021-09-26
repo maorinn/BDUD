@@ -10,7 +10,9 @@ import (
 	"github.com/spf13/viper"
 	"io/ioutil"
 	"os"
+	"sync"
 )
+
 
 var (
 	paramsMap  = make(map[string]string)
@@ -19,6 +21,8 @@ var (
 		"Content-Type": "application/x-www-form-urlencoded",
 	}
 	apiHome = "https://pan-api.bitqiu.com"
+	size = 0
+	wg sync.WaitGroup
 )
 
 type Resp struct {
@@ -30,6 +34,12 @@ type RespData struct {
 	CurrentPage int        `json:"currentPage"`
 	PageSize    int        `json:"pageSize"`
 	Data        []Resource `json:"data"`
+}
+
+type RespDownloadData struct {
+	CurrentPage int        `json:"currentPage"`
+	PageSize    int        `json:"pageSize"`
+	Data        Resource `json:"data"`
 }
 
 // Resource 资源信息
@@ -44,9 +54,11 @@ type Resource struct {
 	CreateTime      string `json:"createTime"`
 	SnapTime        string `json:"snapTime"`
 	ViewTime        string `json:"viewTime"`
+	Url				string `json:"url"`
 	ViewOffsetMills string `json:"viewOffsetMills"`
 	ResourceUid     string `json:"resourceUid"`
 	Type            string `json:"type"`
+	ExtName			string `json:"extName"`
 }
 
 func init() {
@@ -71,6 +83,7 @@ func init() {
 	if err != nil {
 		log.Fatal("read config failed: %v", err)
 	}
+	size = viper.GetInt("file.size")
 
 	// 设置 headers 键值
 	paramsMap["access_token"] = viper.GetString("validation.access_token")
@@ -87,8 +100,8 @@ Usage: tiler [-h] [-c filename]
 }
 
 // 获取目录下的文件ids 最大二级
-func getDirFileIds() []string {
-	var fileIds []string
+func getDirFileIds() map[string] Resource{
+	fileIds := make(map[string] Resource)
 	paramsMap["parent_id"] = viper.GetString("file.dir_ids")
 	paramsMap["desc"] = "1"
 	paramsMap["limit"] = "1000"
@@ -111,8 +124,8 @@ func getDirFileIds() []string {
 
 	}
 	for _, val := range _resp.Data.Data {
-		if val.Size > 200 {
-			fileIds = append(fileIds, val.ResourceId)
+		if val.ExtName!=""&&val.Size>=size {
+			fileIds[val.ResourceId] = val
 		} else {
 			// 进入下一级再获取文件资源id
 			paramsMap["parent_id"] = val.ResourceId
@@ -127,8 +140,10 @@ func getDirFileIds() []string {
 			var _resp Resp
 			err = json.Unmarshal(content, &_resp)
 			for _, _val := range _resp.Data.Data {
-				if _val.Size > 200 {
-					fileIds = append(fileIds, val.ResourceId)
+				if _val.ExtName!=""&&_val.Size>=size {
+					fmt.Println("999"+_val.ResourceId)
+					fmt.Println(&_val)
+					fileIds[_val.ResourceId] = val
 				}
 			}
 		}
@@ -137,10 +152,31 @@ func getDirFileIds() []string {
 }
 
 // 批量获取下载地址
-func getDownloadLink() {
-
+func getDownloadLink(fileIds map[string] Resource) map[string]string {
+	var rIds = make(map[string]string)
+	url := apiHome + "/fs/download/file/url"
+	for k,_ := range fileIds{
+		paramsMap["file_ids"] = k
+		resp, _ := HttpPost(url,paramsMap,nil,headersMap)
+		content, err := ioutil.ReadAll(resp.Body)
+		if err!=nil {
+			panic(err)
+		}
+		var _resp RespDownloadData
+		err = json.Unmarshal(content, &_resp)
+		rIds[_resp.Data.Url] = "download/"+fileIds[k].Name
+	}
+	return rIds
 }
 
 func main() {
-	fmt.Printf("%s", getDirFileIds())
+	fileIds:= getDirFileIds()
+	fmt.Printf("%s",fileIds)
+	//file := [] string{"49ccb4b46bb3458bbb938d51971292f0"}
+	rIds:=	getDownloadLink(fileIds)
+	for url,path :=range rIds{
+		wg.Add(1)
+		downloadFile(url,path,&wg,headersMap)
+	}
+	wg.Wait()
 }

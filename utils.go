@@ -2,10 +2,15 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	log "github.com/sirupsen/logrus"
+	"io"
+	//"io/ioutil"
 	"net/http"
 	_url "net/url"
+	"os"
 	"strings"
+	"sync"
 )
 
 func HttpPost(url string, body map[string]string, params map[string]string, headers map[string]string) (*http.Response, error) {
@@ -75,4 +80,46 @@ func HttpGet(url string, params map[string]string, headers map[string]string) (*
 	client := &http.Client{}
 	log.Printf("Go GET URL : %s \n", req.URL.String())
 	return client.Do(req)
+}
+
+type Downloader struct {
+	io.Reader
+	Total   int64
+	Current int64
+}
+
+func (d *Downloader) Read(p []byte) (n int, err error) {
+	n, err = d.Reader.Read(p)
+	d.Current += int64(n)
+	fmt.Printf("\r正在下载，下载进度：%.2f%%", float64(d.Current*10000/d.Total)/100)
+	if d.Current == d.Total {
+		fmt.Printf("\r下载完成，下载进度：%.2f%%", float64(d.Current*10000/d.Total)/100)
+	}
+	return
+}
+var downloadWg *sync.WaitGroup
+func downloadFile(url, filePath string,wg *sync.WaitGroup,headers map[string]string) {
+	downloadWg = wg
+	defer downloadWg.Done()
+	resp, err := HttpGet(url,nil,headers)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	//content, err := ioutil.ReadAll(resp.Body)
+	//fmt.Printf("555%s",content)
+	defer func() {
+		_ = resp.Body.Close()
+	}()
+	log.Printf("path%s,length%s",filePath,resp.ContentLength)
+	file, err := os.Create(filePath)
+	defer func() {
+		_ = file.Close()
+	}()
+	downloader := &Downloader{
+		Reader: resp.Body,
+		Total:  resp.ContentLength,
+	}
+	if _, err := io.Copy(file, downloader); err != nil {
+		log.Fatalln(err)
+	}
 }

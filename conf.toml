@@ -5,4 +5,6 @@
     platform = "d8bbcefed28b48dea77c0ff3473ff9c8;8.9.1.0;FA12EC03-9B87-4B7F-8DE5-78E9CC6647A0;iphone;noone;ios"
     user_id = "121146434"
 [file]
-    dir_ids = "220d00d8ccc145f584a782c2b5ee6be7"
+#     dir_ids = "220d00d8ccc145f584a782c2b5ee6be7"
+    dir_ids = "3bb174711f884348a5e21f1cba4c89e4"
+    size = 602400 # 最小下载文件
