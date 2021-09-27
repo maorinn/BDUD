@@ -1,4 +1,4 @@
-module awesomeProject3
+module BDUD
 
 go 1.16
 
