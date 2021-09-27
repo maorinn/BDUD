@@ -179,7 +179,11 @@ func main() {
 		filePath:=downloadFile(url,path,&wg,headersMap)
 		sp:=strings.Split(filePath,"/")
 		fileName := sp[len(sp)-1]
-		os.Rename(filePath,remotePath+fileName)
+		fmt.Printf("移动 源：%s -> %s",filePath,remotePath+fileName)
+		err:=os.Rename(filePath,remotePath+fileName)
+		if err != nil {
+			panic(err)
+		}
 	}
 	wg.Wait()
 }
