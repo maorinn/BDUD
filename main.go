@@ -180,7 +180,7 @@ func main() {
 		sp:=strings.Split(filePath,"/")
 		fileName := sp[len(sp)-1]
 		fmt.Printf("移动 源：%s -> %s",filePath,remotePath+fileName)
-		err:=os.Rename(filePath,remotePath+fileName)
+		err:=MoveFile(filePath,remotePath+fileName)
 		if err != nil {
 			panic(err)
 		}
