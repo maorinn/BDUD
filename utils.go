@@ -98,7 +98,7 @@ func (d *Downloader) Read(p []byte) (n int, err error) {
 	return
 }
 var downloadWg *sync.WaitGroup
-func downloadFile(url, filePath string,wg *sync.WaitGroup,headers map[string]string) {
+func downloadFile(url, filePath string,wg *sync.WaitGroup,headers map[string]string)string {
 	downloadWg = wg
 	defer downloadWg.Done()
 	resp, err := HttpGet(url,nil,headers)
@@ -122,4 +122,5 @@ func downloadFile(url, filePath string,wg *sync.WaitGroup,headers map[string]str
 	if _, err := io.Copy(file, downloader); err != nil {
 		log.Fatalln(err)
 	}
+	return filePath
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/viper"
 	"io/ioutil"
 	"os"
+	"strings"
 	"sync"
 )
 
@@ -22,6 +23,7 @@ var (
 	}
 	apiHome = "https://pan-api.bitqiu.com"
 	size = 0
+	remotePath = ""
 	wg sync.WaitGroup
 )
 
@@ -84,7 +86,7 @@ func init() {
 		log.Fatal("read config failed: %v", err)
 	}
 	size = viper.GetInt("file.size")
-
+	remotePath = viper.GetString("file.remote_path")
 	// 设置 headers 键值
 	paramsMap["access_token"] = viper.GetString("validation.access_token")
 	paramsMap["app_id"] = viper.GetString("validation.app_id")
@@ -141,8 +143,6 @@ func getDirFileIds() map[string] Resource{
 			err = json.Unmarshal(content, &_resp)
 			for _, _val := range _resp.Data.Data {
 				if _val.ExtName!=""&&_val.Size>=size {
-					fmt.Println("999"+_val.ResourceId)
-					fmt.Println(&_val)
 					fileIds[_val.ResourceId] = val
 				}
 			}
@@ -164,7 +164,7 @@ func getDownloadLink(fileIds map[string] Resource) map[string]string {
 		}
 		var _resp RespDownloadData
 		err = json.Unmarshal(content, &_resp)
-		rIds[_resp.Data.Url] = "download/"+fileIds[k].Name
+		rIds[_resp.Data.Url] = "download/"+fileIds[k].Name+"."+fileIds[k].ExtName
 	}
 	return rIds
 }
@@ -176,7 +176,10 @@ func main() {
 	rIds:=	getDownloadLink(fileIds)
 	for url,path :=range rIds{
 		wg.Add(1)
-		downloadFile(url,path,&wg,headersMap)
+		filePath:=downloadFile(url,path,&wg,headersMap)
+		sp:=strings.Split(filePath,"/")
+		fileName := sp[len(sp)-1]
+		os.Rename(filePath,remotePath+fileName)
 	}
 	wg.Wait()
 }
