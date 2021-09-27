@@ -110,6 +110,9 @@ func downloadFile(url, filePath string,wg *sync.WaitGroup,headers map[string]str
 	}()
 	log.Printf("path%s,length%s",filePath,resp.ContentLength)
 	file, err := os.Create(filePath)
+	if err != nil {
+		panic(err)
+	}
 	defer func() {
 		_ = file.Close()
 	}()
