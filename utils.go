@@ -105,8 +105,6 @@ func downloadFile(url, filePath string,wg *sync.WaitGroup,headers map[string]str
 	if err != nil {
 		log.Fatalln(err)
 	}
-	//content, err := ioutil.ReadAll(resp.Body)
-	//fmt.Printf("555%s",content)
 	defer func() {
 		_ = resp.Body.Close()
 	}()

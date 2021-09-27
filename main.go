@@ -143,7 +143,7 @@ func getDirFileIds() map[string] Resource{
 			err = json.Unmarshal(content, &_resp)
 			for _, _val := range _resp.Data.Data {
 				if _val.ExtName!=""&&_val.Size>=size {
-					fileIds[_val.ResourceId] = val
+					fileIds[_val.ResourceId] = _val
 				}
 			}
 		}
@@ -164,14 +164,14 @@ func getDownloadLink(fileIds map[string] Resource) map[string]string {
 		}
 		var _resp RespDownloadData
 		err = json.Unmarshal(content, &_resp)
-		rIds[_resp.Data.Url] = "download/"+fileIds[k].Name+"."+fileIds[k].ExtName
+		rIds[_resp.Data.Url] = "./download/"+fileIds[k].Name+"."+fileIds[k].ExtName
 	}
 	return rIds
 }
 
 func main() {
 	fileIds:= getDirFileIds()
-	fmt.Printf("%s",fileIds)
+	//fmt.Printf("%s",fileIds)
 	//file := [] string{"49ccb4b46bb3458bbb938d51971292f0"}
 	rIds:=	getDownloadLink(fileIds)
 	for url,path :=range rIds{
